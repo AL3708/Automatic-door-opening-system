@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk ls *)",
+      "Bash(rtk grep *)",
+      "Bash(Get-ChildItem -Recurse -Filter \"*migration*\" -ErrorAction SilentlyContinue)",
+      "Bash(grep -E \"^src$|^legacy$\")",
+      "Bash(cmd /c dir /b)",
+      "Bash(uv --version)",
+      "Bash(rtk uv *)",
+      "Bash(uv run *)",
+      "Bash(python \"D:\\\\Projects\\\\Automatic-door-opening-system\\\\tests\\\\test_state.py.tmp\")",
+      "Bash(python -m pytest --collect-only)"
+    ]
+  }
+}

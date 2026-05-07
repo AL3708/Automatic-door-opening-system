@@ -19,6 +19,21 @@ The system was created for small farm specialized on breeding chickens. System i
 * C++/Arduino - std11
 * PlatformIO
 
+## Hardware
+
+| Component | Part | Notes |
+|-----------|------|-------|
+| MCU | Arduino Pro Mini 328 (5V/16MHz) | No USB — program via TTL converter, manual RST pin trick required |
+| Servo | MG995 continuous rotation (360°) | Rope wound on ~30×30mm drum; stalls under load = mechanical brake holds door up |
+| RTC | DS1307 (GY-302 breakout) | Drifts significantly; firmware compensates at midnight |
+| Light sensor | BH1750FVI (GY-302 breakout) | Dusk/dawn detection; time windows prevent false triggers from clouds/storms |
+| Limit switches | 2× microswitch | End-of-travel detection, interrupt-driven |
+| Manual buttons | 2× push-button | Open/close override |
+| LEDs | 3mm red/yellow/green | Large series resistors → <1mA each for power saving |
+| Power | microUSB adapter board → VCC/GND | Bulk cap (~100µF) for supply stabilization |
+
+Electronics enclosure placed in dark location to isolate sensor from ambient light.
+
 ## Libraries
 * Wire (Arduino Standard Libraries)
 * EEPROM (Arduino Standard Libraries)
