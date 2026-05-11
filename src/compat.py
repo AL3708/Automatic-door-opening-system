@@ -1,3 +1,4 @@
+# Licensed under CC BY-NC-SA 4.0. Strictly non-commercial.
 import sys
 
 if sys.implementation.name == "micropython":

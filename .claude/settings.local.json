@@ -10,7 +10,21 @@
       "Bash(rtk uv *)",
       "Bash(uv run *)",
       "Bash(python \"D:\\\\Projects\\\\Automatic-door-opening-system\\\\tests\\\\test_state.py.tmp\")",
-      "Bash(python -m pytest --collect-only)"
+      "Bash(python -m pytest --collect-only)",
+      "mcp__context-mode__ctx_batch_execute",
+      "mcp__context-mode__ctx_index",
+      "mcp__context-mode__ctx_search",
+      "Bash(Get-ChildItem -Path \"D:\\\\Projects\\\\Automatic-door-opening-system\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(.venv\\\\Scripts\\\\python.exe *)",
+      "Bash(python -m microdot)",
+      "Bash(python -c \"import microdot; print\\(microdot.__version__\\)\")",
+      "Bash(Get-ChildItem -Path \"D:\\\\Projects\\\\Automatic-door-opening-system\\\\src\" -Recurse -File)",
+      "PowerShell(New-Item *)",
+      "Bash(dir D:\\\\Projects\\\\Automatic-door-opening-system\\\\src *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Projects\\\\Automatic-door-opening-system\\\\src\")",
+      "Bash(Select-Object Name)",
+      "Bash(dir *)"
     ]
   }
 }

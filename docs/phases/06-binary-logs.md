@@ -202,7 +202,7 @@ Simple table fetched via HTMX. No complex JS.
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kurnik — Logi</title>
+  <title>Coop — Logs</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <script src="https://unpkg.com/htmx.org@2.0.0"></script>
 </head>

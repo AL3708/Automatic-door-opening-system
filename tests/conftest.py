@@ -1,3 +1,4 @@
+# Licensed under CC BY-NC-SA 4.0. Strictly non-commercial.
 import pytest
 
 from src.config import default_config

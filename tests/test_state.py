@@ -1,3 +1,4 @@
+# Licensed under CC BY-NC-SA 4.0. Strictly non-commercial.
 """
 State machine tests for CoopController.
 
@@ -703,10 +704,12 @@ def test_manual_move_close_from_safety_stop(ctrl):
 
 
 def test_on_midnight_resets_today_rec(ctrl):
-    """_on_midnight resets daily record."""
+    """_on_midnight resets daily record — days_since_2025 set to new day."""
+    from src.logs import days_since_2025
+
     ctrl._today_rec = [5, 300, 1100, 3, 2]
     ctrl._on_midnight(2024, 6, 2, 0, 0)
-    assert ctrl._today_rec == [0, 0xFFFF, 0xFFFF, 0, 0]
+    assert ctrl._today_rec == [days_since_2025(2024, 6, 2), 0xFFFF, 0xFFFF, 0, 0]
 
 
 def test_on_midnight_resets_error_count(ctrl):
@@ -773,6 +776,9 @@ def test_status_json_required_keys(ctrl):
     assert "limit_bottom" in data
     assert "vbat_v" in data
     assert "config_warning" in data
+    assert "today_schedule" in data
+    assert "sunrise_today" in data
+    assert "sunset_today" in data
 
 
 def test_status_json_state_is_string(ctrl):
@@ -824,6 +830,15 @@ def test_status_json_empty_warning_when_none(ctrl):
     assert data["config_warning"] == ""
 
 
+def test_status_json_includes_today_schedule(ctrl):
+    import json
+
+    ctrl._today_times = (360, 1080, 480, 1320)
+    data = json.loads(ctrl.status_json())
+    assert "today_schedule" in data
+    assert data["today_schedule"] == {"wo": 360, "wc": 1080, "ao": 480, "ac": 1320}
+
+
 # ---------------------------------------------------------------------------
 # _next_day date arithmetic (used by get_forecast)
 # ---------------------------------------------------------------------------
@@ -866,6 +881,59 @@ def test_get_forecast_zero_days(ctrl):
     """get_forecast(0) returns empty list, no crash."""
     result = ctrl.get_forecast(0)
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# get_sun_forecast
+# ---------------------------------------------------------------------------
+
+
+def test_get_sun_forecast_default_length(ctrl):
+    assert len(ctrl.get_sun_forecast()) == 30
+
+
+def test_get_sun_forecast_custom_length(ctrl):
+    assert len(ctrl.get_sun_forecast(7)) == 7
+
+
+def test_get_sun_forecast_zero_days(ctrl):
+    assert ctrl.get_sun_forecast(0) == []
+
+
+def test_get_sun_forecast_structure(ctrl):
+    """Each entry is (rise_local_min, set_local_min), rise < set, both in 0..1500."""
+    result = ctrl.get_sun_forecast(5)
+    for rise, sset in result:
+        assert isinstance(rise, int)
+        assert isinstance(sset, int)
+        assert 0 <= rise <= 1500
+        assert 0 <= sset <= 1500
+        assert rise < sset
+
+
+def test_get_sun_forecast_dst_applied(ctrl):
+    """June (CEST active) → rise_local = rise_cet + 60."""
+    from src.astro import is_dst, sun_times_cet
+
+    ctrl.rtc.set_datetime((2024, 6, 1, 8, 0, 0, 0, 0))
+    result = ctrl.get_sun_forecast(1)
+    rise, sset = result[0]
+    rise_cet, set_cet = sun_times_cet(2024, 6, 1)
+    assert is_dst(2024, 6, 1, 12)
+    assert rise == rise_cet + 60
+    assert sset == set_cet + 60
+
+
+def test_get_sun_forecast_no_dst_in_december(ctrl):
+    """December (CET) → no DST offset, rise_local = rise_cet."""
+    from src.astro import sun_times_cet
+
+    ctrl.rtc.set_datetime((2024, 12, 21, 8, 0, 0, 0, 0))
+    result = ctrl.get_sun_forecast(1)
+    rise, sset = result[0]
+    rise_cet, set_cet = sun_times_cet(2024, 12, 21)
+    assert rise == rise_cet
+    assert sset == set_cet
 
 
 # ---------------------------------------------------------------------------
@@ -1099,3 +1167,77 @@ def test_resolve_times_winter_differs_from_summer(ctrl):
     assert summer_wc != winter_wc, "sunset should differ summer vs winter"
     assert winter_wo > summer_wo, "winter sunrise later (more minutes from midnight)"
     assert winter_wc < summer_wc, "winter sunset earlier"
+
+
+# ---------------------------------------------------------------------------
+# _on_limit_reached — sync state transition dispatch
+# Default RTC: (2024, 6, 1, 8, 0) CET → CEST active → local_minutes = 540
+# ---------------------------------------------------------------------------
+
+
+def test_on_limit_auto_open_goes_idle_open(ctrl):
+    ctrl.state = GateState.MOVING_OPEN
+    ctrl._trigger = MovementTrigger.AUTO
+    ctrl._on_limit_reached()
+    assert ctrl.state == GateState.IDLE_OPEN
+
+
+def test_on_limit_auto_close_goes_idle_closed(ctrl):
+    ctrl.state = GateState.MOVING_CLOSE
+    ctrl._trigger = MovementTrigger.AUTO
+    ctrl._on_limit_reached()
+    assert ctrl.state == GateState.IDLE_CLOSED
+
+
+def test_on_limit_manual_open_goes_manual_hold(ctrl):
+    ctrl.state = GateState.MOVING_OPEN
+    ctrl._trigger = MovementTrigger.MANUAL
+    ctrl._on_limit_reached()
+    assert ctrl.state == GateState.MANUAL_HOLD_OPEN
+
+
+def test_on_limit_manual_close_goes_manual_hold(ctrl):
+    ctrl.state = GateState.MOVING_CLOSE
+    ctrl._trigger = MovementTrigger.MANUAL
+    ctrl._on_limit_reached()
+    assert ctrl.state == GateState.MANUAL_HOLD_CLOSED
+
+
+def test_on_limit_recovery_open_goes_idle(ctrl):
+    ctrl.state = GateState.MOVING_OPEN
+    ctrl._trigger = MovementTrigger.RECOVERY
+    ctrl._on_limit_reached()
+    assert ctrl.state == GateState.IDLE_OPEN
+
+
+def test_on_limit_records_first_open_min(ctrl):
+    """First open records local_minutes in _today_rec[1]."""
+    from src.astro import local_minutes
+
+    ctrl.state = GateState.MOVING_OPEN
+    ctrl._trigger = MovementTrigger.AUTO
+    ctrl._today_rec[1] = 0xFFFF
+    ctrl._on_limit_reached()
+    y, mo, d, h, minute, *_ = ctrl.rtc.datetime()
+    assert ctrl._today_rec[1] == local_minutes(y, mo, d, h, minute)
+
+
+def test_on_limit_does_not_overwrite_open_min(ctrl):
+    """Second open does not overwrite first open_min."""
+    ctrl.state = GateState.MOVING_OPEN
+    ctrl._trigger = MovementTrigger.AUTO
+    ctrl._today_rec[1] = 300
+    ctrl._on_limit_reached()
+    assert ctrl._today_rec[1] == 300
+
+
+def test_on_limit_records_close_min_always(ctrl):
+    """Every close overwrites _today_rec[2] (last close wins)."""
+    from src.astro import local_minutes
+
+    ctrl.state = GateState.MOVING_CLOSE
+    ctrl._trigger = MovementTrigger.AUTO
+    ctrl._today_rec[2] = 999
+    ctrl._on_limit_reached()
+    y, mo, d, h, minute, *_ = ctrl.rtc.datetime()
+    assert ctrl._today_rec[2] == local_minutes(y, mo, d, h, minute)

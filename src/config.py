@@ -1,3 +1,4 @@
+# Licensed under CC BY-NC-SA 4.0. Strictly non-commercial.
 import json
 from dataclasses import asdict, dataclass, field
 
@@ -61,6 +62,10 @@ class Config:
 
 def default_config() -> Config:
     return Config()
+
+
+def _to_dict(cfg: Config) -> dict:
+    return asdict(cfg)
 
 
 def _from_dict(data: dict) -> Config:

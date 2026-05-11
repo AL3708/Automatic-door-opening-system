@@ -55,13 +55,8 @@ Opus is the Principal Architect. Call Opus (`/advisor` or ask user to run it) MO
  - **RULE (SENIOR STYLE):** No `# type: ignore`, no arbitrary `cast(Any)`. Fix the root cause.
 4.  **Escalate (Opus):** If LintFixer/DocTyper report unsolvable architecture errors, or you don't know how to fix it, use `/advisor` to ask Opus.
 
-## 4. Memory MCP
 
-- **Start:** Query `memory` ONLY if needed (missing context, complex rules, new modules).
-- **Save:** MILESTONES and core arch decisions ONLY. No trivial logging.
-- **Trigger:** Ask "Save memory?" ONLY after major milestones.
-
-## 5. CLI COMMAND PROXY (CRITICAL)
+## 4. CLI COMMAND PROXY (CRITICAL)
 
 You MUST prefix all shell/bash commands with `rtk `. Use `uv` if applicable.
 - Example: RUN `rtk uv run pyright main.py` INSTEAD OF `pyright main.py`.

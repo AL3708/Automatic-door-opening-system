@@ -246,7 +246,7 @@ import network
 network.WLAN(network.AP_IF).active(False)   # WiFi off by default
 
 import webrepl
-webrepl.start(password="kurnik")
+webrepl.start(password="coop")
 
 from machine import I2C, Pin
 i2c = I2C(0, sda=Pin(4), scl=Pin(5), freq=400_000)
@@ -405,7 +405,7 @@ After flashing, verify each item:
 
 ### Web UI
 
-- [ ] Double-click BTN_OPEN or BTN_CLOSE → WiFi `Kurnik_Control` appears
+- [ ] Double-click BTN_OPEN or BTN_CLOSE → WiFi `Coop_Control` appears
 - [ ] Connect phone → open `http://192.168.4.1`
 - [ ] Status page shows live state via SSE (no refresh needed)
 - [ ] Config form saves and persists after reboot
@@ -414,7 +414,7 @@ After flashing, verify each item:
 
 ### WebREPL
 
-- [ ] Connect via `http://micropython.org/webrepl/#192.168.4.1:8266` with password `kurnik`
+- [ ] Connect via `http://micropython.org/webrepl/#192.168.4.1:8266` with password `coop`
 - [ ] Can execute `ctrl.state` in REPL and see current state
 - [ ] Can upload files via WebREPL
 

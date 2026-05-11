@@ -1,3 +1,4 @@
+# Licensed under CC BY-NC-SA 4.0. Strictly non-commercial.
 from src.astro import (
     _last_sunday,
     day_of_year,

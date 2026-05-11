@@ -54,7 +54,7 @@ Fallback: polling `/api/status` every 2s if SSE unavailable.
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kurnik — Status</title>
+  <title>Coop — Status</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <script src="https://unpkg.com/htmx.org@2.0.0"></script>
   <script src="https://unpkg.com/htmx-ext-sse@2.2.1/sse.js"></script>
@@ -196,7 +196,7 @@ async def forecast_svg(request):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kurnik — Konfiguracja</title>
+  <title>Coop — Configuration</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <script src="https://unpkg.com/htmx.org@2.0.0"></script>
 </head>
@@ -380,7 +380,7 @@ async def forecast_svg(request):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kurnik — Debug</title>
+  <title>Coop — Debug</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <script src="https://unpkg.com/htmx.org@2.0.0"></script>
 </head>

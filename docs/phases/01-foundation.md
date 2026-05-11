@@ -29,7 +29,7 @@ Use `uv` as package manager. Python ≥ 3.13.
 
 ```toml
 [project]
-name = "smart-kurnik-v2"
+name = "smart-coop-v2"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

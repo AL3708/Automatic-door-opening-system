@@ -238,7 +238,7 @@ async def start_ap_session() -> None:
             machine.freq(80_000_000)
             ap = network.WLAN(network.AP_IF)
             ap.active(True)
-            ap.config(ssid="Kurnik_Control", password="kurnik123")
+            ap.config(ssid="Coop_Control", password="coop123")
             from src.web import create_app
             app = create_app(ctrl)
             asyncio.create_task(_ap_watchdog(ap, app))

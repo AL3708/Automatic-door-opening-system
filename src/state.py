@@ -1,3 +1,4 @@
+# Licensed under CC BY-NC-SA 4.0. Strictly non-commercial.
 from enum import Enum
 
 
@@ -82,6 +83,7 @@ class CoopController:
         self._abort_move: bool = False
         self._i2c_fail_count: int = 0
         self._vbat_low: bool = False
+        self._vbat_v: float | None = None
         self._config_warning: str = ""
         self._today_times: tuple = (0, 0, 0, 0)  # (wo, wc, ao, ac) min from midnight
 
@@ -96,6 +98,9 @@ class CoopController:
         y, mo, d, h, minute, *_ = self.rtc.datetime()
         if y >= 2020:
             self._resolve_times(y, mo, d, h, minute)
+            from src.logs import days_since_2025
+
+            self._today_rec[0] = days_since_2025(y, mo, d)
 
     # ------------------------------------------------------------------
     # Core sync tick — called every 2s by control_loop (Phase 4)
@@ -250,10 +255,26 @@ class CoopController:
             y, mo, d = _next_day(y, mo, d)
         return result
 
+    def get_sun_forecast(self, days: int = 30) -> list[tuple]:
+        """Return [(rise_local_min, set_local_min), ...] for next N days."""
+        from src.astro import is_dst, sun_times_cet
+
+        result = []
+        y, mo, d, *_ = self.rtc.datetime()
+        for _ in range(days):
+            rise, sset = sun_times_cet(y, mo, d)
+            dst = 60 if is_dst(y, mo, d, 12) else 0
+            result.append((rise + dst, sset + dst))
+            y, mo, d = _next_day(y, mo, d)
+        return result
+
     def status_json(self) -> str:
         import json
 
         y, mo, d, h, minute, *_ = self.rtc.datetime()
+        wo, wc, ao, ac = self._today_times
+        sun = self.get_sun_forecast(1)
+        rise_today, set_today = sun[0] if sun else (None, None)
         return json.dumps(
             {
                 "state": self.state.value,
@@ -263,6 +284,9 @@ class CoopController:
                 "limit_bottom": self.limit_bottom.value() == 0,
                 "vbat_v": None,  # Phase 8 wires real ADC
                 "config_warning": self._config_warning,
+                "today_schedule": {"wo": wo, "wc": wc, "ao": ao, "ac": ac},
+                "sunrise_today": rise_today,
+                "sunset_today": set_today,
             }
         )
 
@@ -334,20 +358,70 @@ class CoopController:
         self.state = GateState.ERROR
 
     def _on_midnight(self, y: int, m: int, d: int, h: int, minute: int) -> None:
-        # Phase 6 adds: _write_record(self._today_rec)
-        self._today_rec = [0, 0xFFFF, 0xFFFF, 0, 0]
+        from src.logs import days_since_2025, write_record
+
+        try:
+            write_record(tuple(self._today_rec))
+        except Exception as e:
+            self._log_warning(f"log write failed: {e}")
+        self._today_rec = [days_since_2025(y, m, d), 0xFFFF, 0xFFFF, 0, 0]
         self._today_rec_error_count = 0
         self._resolve_times(y, m, d, h, minute)
 
     def _on_limit_reached(self) -> None:
-        """Phase 4 implements: transition MOVING_* → IDLE_* or MANUAL_HOLD_* based on _trigger."""
+        """Transition MOVING_* → IDLE_* or MANUAL_HOLD_* based on _trigger."""
+        from src.astro import local_minutes
+
+        y, mo, d, h, minute, *_ = self.rtc.datetime()
+        now = local_minutes(y, mo, d, h, minute)
+        opening = self.state == GateState.MOVING_OPEN
+
+        if opening:
+            if self._today_rec[1] == 0xFFFF:
+                self._today_rec[1] = now
+            self.state = (
+                GateState.MANUAL_HOLD_OPEN
+                if self._trigger == MovementTrigger.MANUAL
+                else GateState.IDLE_OPEN
+            )
+        else:
+            self._today_rec[2] = now
+            self.state = (
+                GateState.MANUAL_HOLD_CLOSED
+                if self._trigger == MovementTrigger.MANUAL
+                else GateState.IDLE_CLOSED
+            )
 
     def _log_warning(self, msg: str) -> None:
         print(f"[WARNING] {msg}")  # Phase 6 writes to binary log
 
-    # ------------------------------------------------------------------
-    # Phase 4 stub — async coroutines added later
-    # ------------------------------------------------------------------
-
     async def _run_move(self, direction: str) -> None:
-        pass  # Phase 4 implements
+        from src.compat import sleep_ms, ticks_ms
+
+        self._move_start_ms = ticks_ms()
+        self.nsleep.value(1)
+        await sleep_ms(1)
+
+        if direction == "open":
+            self.motor.forward()
+            limit_pin = self.limit_top
+        else:
+            self.motor.backward()
+            limit_pin = self.limit_bottom
+
+        while limit_pin.value() == 1:  # HIGH = not triggered (pull-up)
+            if self._abort_move:
+                self._abort_move = False
+                self.motor.stop()
+                self.nsleep.value(0)
+                return
+            if self.nfault.value() == 0:  # active-low fault
+                self._safety_stop()
+                return
+            if self.state == GateState.SAFETY_STOP:  # timeout detected by tick()
+                return
+            await sleep_ms(20)
+
+        self.motor.stop()
+        self.nsleep.value(0)
+        self._on_limit_reached()

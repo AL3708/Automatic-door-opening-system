@@ -1,3 +1,4 @@
+# Licensed under CC BY-NC-SA 4.0. Strictly non-commercial.
 import math
 
 _RISE_MEAN = (453 + 206) / 2  # 329.5 min

@@ -1,3 +1,4 @@
+# Licensed under CC BY-NC-SA 4.0. Strictly non-commercial.
 class MockMotor:
     def __init__(self):
         self.commands: list[str] = []
